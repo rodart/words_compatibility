@@ -28,8 +28,8 @@ for my $file (@files) {
             next;
         }
          
-        $dbh->do('INSERT INTO compatibility VALUES(?,?,?,?) ON DUPLICATE KEY UPDATE num = num + ?', 
-                  undef, $word_from, $word_to, $relation, $num, $num);
+        $dbh->do('INSERT IGNORE INTO compatibility VALUES(?,?,?,?)', 
+                  undef, $word_from, $word_to, $relation, $num);
     }
 
     close FILE;
