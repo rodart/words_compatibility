@@ -1,7 +1,6 @@
 <job_desc>
     <task>
         <application>worker</application>
-        <!--command_line>sentences.txt relations.txt</command_line-->
         <stdout_filename>stdout_file</stdout_filename>
         <stderr_filename>stderr_file</stderr_filename>
     </task>
