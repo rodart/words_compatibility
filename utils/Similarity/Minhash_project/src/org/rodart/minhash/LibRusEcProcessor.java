@@ -35,9 +35,9 @@ public class LibRusEcProcessor {
         SAXParser parser = factory.newSAXParser();
 
         MinHash minHash = new MinHash(0.1);
-		ArrayList<ArrayList<Integer>> minHashValues = new ArrayList<ArrayList<Integer>>();
-		ArrayList<String> documentList = new ArrayList<String>();
-		
+        ArrayList<ArrayList<Integer>> minHashValues = new ArrayList<ArrayList<Integer>>();
+        ArrayList<String> documentList = new ArrayList<String>();
+
         for_zips:
         for (int i = 0; i < zip_list.length; ++i) {
             ZipFile zip = new ZipFile(zip_list[i]);
@@ -57,25 +57,25 @@ public class LibRusEcProcessor {
                 InputStream in = zip.getInputStream(entry);
                 try {
                     if (procecced_files_number % 1000 == 0) {
-                    	System.out.println(procecced_files_number + " files was procecced (" + processed_with_errors + " unsuccessfully) " + Utils.memoryState());
+                        System.out.println(procecced_files_number + " files was procecced (" + processed_with_errors + " unsuccessfully) " + Utils.memoryState());
                     }
                     
                     handler.startParsingFile(zip, entry);
                     parser.parse(in, handler);
                     Book book = handler.getBook();
                     if (book.getTextLength() > 0) {
-                    	computeMinHash(book.getText(), minHash, minHashValues);
-                    	documentList.add(book.getPath());
+                        computeMinHash(book.getText(), minHash, minHashValues);
+                        documentList.add(book.getPath());
                     }
                     handler.finishParsingFile(zip, entry, true);
                 } catch (Exception e) {
-                    if(e.getCause() instanceof SkipCurrentBookException){
+                    if (e.getCause() instanceof SkipCurrentBookException) {
                         // do nothing, just process next book
                         handler.finishParsingFile(zip, entry, true);
                         SkipCurrentBookException.SkipType type = ((SkipCurrentBookException) e.getCause()).getType();
-                        if(type==SkipCurrentBookException.SkipType.FINISH_PROCESSING)
+                        if (type == SkipCurrentBookException.SkipType.FINISH_PROCESSING)
                             break for_zips;
-                        else if(type== SkipCurrentBookException.SkipType.PROCESS_NEXT_ZIP)
+                        else if (type == SkipCurrentBookException.SkipType.PROCESS_NEXT_ZIP)
                             continue for_zips;
                         else
                             continue for_entries;
@@ -91,15 +91,12 @@ public class LibRusEcProcessor {
             zip.close();
         }
         System.out.println("All articles is procecced");
-        int numHashFunctions = minHash.getNumHashFunctions();
 
-       // printMinHashValues(minHashValues, numHashFunctions, documentList, "D:\\minhash.txt", "D:\\docnames.txt");
-		computeSimilarityFromSignatures(minHashValues, numHashFunctions, documentList, minhash_similarity_filename);
+        int numHashFunctions = minHash.getNumHashFunctions();
+        printMinHashValues(minHashValues, numHashFunctions, documentList, "D:\\minhash.txt", "D:\\docnames.txt");
+        computeSimilarityFromSignatures(minHashValues, numHashFunctions, documentList, minhash_similarity_filename);
     }
-    
-    // функция, которая выводит в файл все посчитанные minHash'ы и соответсвующие названия документов. 
-    // Может понадобится для того, что бы сравнить все эти дохреналион минхэшовых векторов например на С++, а не ждать 1000 лет джаву
-    /*
+
     private static void printMinHashValues(ArrayList<ArrayList<Integer>> minHashValues, int numHashFunctions, 
                                            ArrayList<String> documentList,
                                            String minhashes_filename, String docnames_filename) 
@@ -126,55 +123,55 @@ public class LibRusEcProcessor {
         } 
         
     }
-    */
+
     
     private void computeMinHash(String doc, MinHash minHash, ArrayList<ArrayList<Integer>> minHashValues) {
-    	int numTerms = 5000;
-		//int numTerms = -1; - если -1, то обрабатывать весь, документ, иначе - только первые numTerms слов
-		Shingle shingles = new Shingle(doc.toString(), 4);
-		ArrayList<String> shiglesList = shingles.getShinglesList(numTerms);
-		minHashValues.add(minHash.getMinHashValues(shiglesList));
-	}
+        //if numTerms = -1 then process all documents, else - only first numTerms words
+        int numTerms = 5000;
+        Shingle shingles = new Shingle(doc.toString(), 4);
+        ArrayList<String> shiglesList = shingles.getShinglesList(numTerms);
+        minHashValues.add(minHash.getMinHashValues(shiglesList));
+    }
     
-	private static void computeSimilarityFromSignatures(ArrayList<ArrayList<Integer>> minHashValues, 
-														int numHashFunctions, 
-														ArrayList<String> documentList,
-														String minhash_similarity_filename) {
-		try {
-			PrintWriter out = new PrintWriter(new FileWriter(minhash_similarity_filename));
-			int filesNumber = documentList.size();
-			int similar_minhash_doc_num = 0;
-			for (int i = 0; i < filesNumber - 1; ++i) {
-				if (i % 1000 == 0) {
-					System.out.println("SIMILARITY: computing " +  i + " files\n");
-				}
-				for (int j = i + 1; j < filesNumber; ++j) {
-					int identicalMinHashes = 0;
-					for (int k = 0; k < numHashFunctions; ++k) {
-						int a = minHashValues.get(i).get(k);
-						int b = minHashValues.get(j).get(k);
-						if (a == b) {
-							identicalMinHashes++;
-						}
-					}
-					double prob = (1.0 * identicalMinHashes) / numHashFunctions;
-					if (prob >= 0.85) {
-						similar_minhash_doc_num++;
-						out.println(documentList.get(i) + " <--> " + documentList.get(j) + " with P = " + prob + "\n");
-					}
-				}
-			}
-			if (similar_minhash_doc_num == 0) {
-				out.println("No similar by minhash documents!");
-			}
-			out.close();
-			System.out.println("Finish similar documents computing\n");
-		} catch (IOException e) {
-			e.printStackTrace();
-		} 
-	}
+    private static void computeSimilarityFromSignatures(ArrayList<ArrayList<Integer>> minHashValues,
+                                                        int numHashFunctions,
+                                                        ArrayList<String> documentList,
+                                                        String minhash_similarity_filename) {
+        try {
+            PrintWriter out = new PrintWriter(new FileWriter(minhash_similarity_filename));
+            int filesNumber = documentList.size();
+            int similar_minhash_doc_num = 0;
+            for (int i = 0; i < filesNumber - 1; ++i) {
+                if (i % 1000 == 0) {
+                    System.out.println("SIMILARITY: computing " +  i + " files\n");
+                }
+                for (int j = i + 1; j < filesNumber; ++j) {
+                    int identicalMinHashes = 0;
+                    for (int k = 0; k < numHashFunctions; ++k) {
+                        int a = minHashValues.get(i).get(k);
+                        int b = minHashValues.get(j).get(k);
+                        if (a == b) {
+                            identicalMinHashes++;
+                        }
+                    }
+                    double prob = (1.0 * identicalMinHashes) / numHashFunctions;
+                    if (prob >= 0.85) {
+                        similar_minhash_doc_num++;
+                        out.println(documentList.get(i) + " <--> " + documentList.get(j) + " with P = " + prob + "\n");
+                    }
+                }
+            }
+            if (similar_minhash_doc_num == 0) {
+                out.println("No similar by minhash documents!");
+            }
+            out.close();
+            System.out.println("Finish similar documents computing\n");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
-	protected String[] getZipList(String path_str) {
+    protected String[] getZipList(String path_str) {
         File temp_file;
         String[] dir_list = null;
         while (true) {

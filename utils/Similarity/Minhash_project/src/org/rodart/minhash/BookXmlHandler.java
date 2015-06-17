@@ -20,17 +20,10 @@ import java.util.zip.ZipFile;
 
 
 public class BookXmlHandler extends DefaultHandler {
-    protected static final String BOOK_DESCRIPTION = "FictionBook.description";
     protected static final String BOOK_AUTHOR_FIRST_NAME = "FictionBook.description.title-info.author.first-name";
     protected static final String BOOK_AUTHOR_LAST_NAME = "FictionBook.description.title-info.author.last-name";
     protected static final String BOOK_TITLE = "FictionBook.description.title-info.book-title";
-    protected static final String BOOK_LANG = "FictionBook.description.title-info.lang";
-    protected static final String BOOK_GENRE = "FictionBook.description.title-info.genre";
-
-    protected static final String BOOK_BODY = "FictionBook.body";
-
     private static final Pattern BOOK_TEXT = Pattern.compile("FictionBook\\.body(\\.section)+\\.p");
-
 
     private StringBuilder data = new StringBuilder();
     private StringBuilder sb = new StringBuilder();
@@ -47,34 +40,33 @@ public class BookXmlHandler extends DefaultHandler {
     }
 
     public void finishParsingFile(ZipFile zip, ZipEntry entry, boolean parsedSuccessfully) {
-    	if (book.getTitle().length() > 0) {
-    		if (indexedBooks.containsKey(book.getTitle())) {
-    			//System.out.println(book.getPath() + " <--> " + indexedBooks.get(book.getTitle()));
-    			similar_by_key_docs.add(new ObjectPair<String, String>(book.getPath(), indexedBooks.get(book.getTitle())));
-    		} else {
-    			indexedBooks.put(book.getTitle(), book.getPath());
-    		}		
-    	}
-    	book.clearText();
+        if (book.getTitle().length() > 0) {
+            if (indexedBooks.containsKey(book.getTitle())) {
+                similar_by_key_docs.add(new ObjectPair<String, String>(book.getPath(), indexedBooks.get(book.getTitle())));
+            } else {
+                indexedBooks.put(book.getTitle(), book.getPath());
+            }
+        }
+        book.clearText();
     }
     
     public Book getBook() {
-    	return book;
+        return book;
     }
 
     public void printSimilarBooksTitles(String similarity_by_key_filename) {
-		try {
-			PrintWriter out = new PrintWriter(new FileWriter(similarity_by_key_filename));
-			if (similar_by_key_docs.size() == 0) {
-				out.println("No similar by key documents!");
-			}
-	        for (ObjectPair<String, String> entry : similar_by_key_docs) { 
-	        	out.println(entry.getFirst() + " <--> " + entry.getSecond());
-	        }
-			out.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		} 
+        try {
+            PrintWriter out = new PrintWriter(new FileWriter(similarity_by_key_filename));
+            if (similar_by_key_docs.size() == 0) {
+                out.println("No similar documents by key.");
+            }
+            for (ObjectPair<String, String> entry : similar_by_key_docs) {
+                out.println(entry.getFirst() + " <--> " + entry.getSecond());
+            }
+            out.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
     
     
@@ -85,11 +77,11 @@ public class BookXmlHandler extends DefaultHandler {
     @Override
     final public void endElement(String uri, String localName, String qName) throws SAXException {
         String pop = attrStack.lastElement();
-        if(!pop.equals(qName))
-            throw new SAXException("Expected end of element '"+pop+"' but found end of element '"+qName+"'");
+        if (!pop.equals(qName))
+            throw new SAXException("Expected end of element '" + pop + "' but found end of element '" + qName + "'");
 
         String elementName = getElementName();
-        if(BOOK_TEXT.matcher(elementName).find() && !isBookText(elementName)){
+        if (BOOK_TEXT.matcher(elementName).find() && !isBookText(elementName)){
             attrStack.pop();
             return;
         }
@@ -104,14 +96,15 @@ public class BookXmlHandler extends DefaultHandler {
     }
 
     protected void endElement(StringBuilder data, String elementName) throws SAXException {
-    	book.appendParagraph(data);
+        book.appendParagraph(data);
     }
 
     @Override
     final public void startElement(String uri, String localName, String qName, Attributes attributes) throws SAXException {
         attrStack.push(qName);
         String elementName = getElementName();
-        if(BOOK_TEXT.matcher(elementName).find() && !isBookText(elementName)) //игнорируем все вложенные в BOOK_TEXT теги, их содержимое присоединяем к BOOK_TEXT (планаризуем текст)
+        //ignore all included tags in BOOK_TEXT and it's content join to BOOK_TEXT (make text plain)
+        if (BOOK_TEXT.matcher(elementName).find() && !isBookText(elementName))
             return;
 
         data.setLength(0);
@@ -127,13 +120,14 @@ public class BookXmlHandler extends DefaultHandler {
         for (String s : attrStack) {
             sb.append(s).append('.');
         }
-        if(attrStack.size() > 0)
+        if (attrStack.size() > 0)
             sb.deleteCharAt(sb.length()-1); //remove last '.'
+
         return sb.toString();
     }
 
     public static String getBookPath(ZipFile zip, ZipEntry entry) {
-        return new File(zip.getName()).getName()+"\\"+entry.getName();
+        return new File(zip.getName()).getName() + "\\" + entry.getName();
     }
 
     public static boolean isBookText(String elementName) {
